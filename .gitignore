@@ -1,0 +1,17 @@
+# dependencies and build output
+node_modules/
+.next/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# local configuration and generated Prisma engine files
+.env
+.env.local
+!/.env.example
+src/generated/prisma/
+
+# operating system and editor files
+.DS_Store
+*.log

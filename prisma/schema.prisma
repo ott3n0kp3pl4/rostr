@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING_MODERATION
+  SUSPENDED
+  DEACTIVATED
+  DELETED
+}
+
+enum UserType {
+  CANDIDATE
+  AGENCY_OWNER
+}
+
+enum OnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum OnboardingStep {
+  WELCOME
+  ROLE
+  CANDIDATE_SPECIALIZATION
+  CANDIDATE_EXPERIENCE
+  CANDIDATE_ENGLISH
+  CANDIDATE_TIMEZONE
+  CANDIDATE_SALARY
+  AGENCY_NAME
+  AGENCY_TEAM_SIZE
+  AGENCY_MONTHLY_HIRES
+  COMPLETE
+}
+
+enum CandidateSpecialization {
+  CHATTER
+  CHATTER_TEAM_LEAD
+  RECRUITER
+}
+
+enum CandidateExperience {
+  NO_EXPERIENCE
+  UP_TO_ONE_YEAR
+  ONE_TO_THREE_YEARS
+  THREE_PLUS_YEARS
+}
+
+enum EnglishLevel {
+  BASIC
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+}
+
+enum AgencyTeamSize {
+  ONE_TO_FIVE
+  SIX_TO_TWENTY
+  TWENTY_ONE_TO_FIFTY
+  FIFTY_PLUS
+}
+
+enum AgencyMonthlyHiring {
+  ONE
+  TWO_TO_FIVE
+  SIX_TO_TEN
+  ELEVEN_PLUS
+}
+
+enum AgencyMemberRole {
+  OWNER
+  RECRUITER
+}
+
+model User {
+  id                String     @id @default(uuid()) @db.Uuid
+  telegramUserId    BigInt?    @unique @map("telegram_user_id")
+  telegramUsername  String?    @map("telegram_username")
+  displayName       String     @map("display_name")
+  avatarUrl         String?    @map("avatar_url")
+  status            UserStatus @default(PENDING_MODERATION)
+  userType          UserType?  @map("user_type")
+  onboardingStatus  OnboardingStatus @default(NOT_STARTED) @map("onboarding_status")
+  onboardingStep    OnboardingStep @default(WELCOME) @map("onboarding_step")
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at") @db.Timestamptz(3)
+  ageConfirmedAt    DateTime?  @map("age_confirmed_at") @db.Timestamptz(3)
+  termsAcceptedAt   DateTime?  @map("terms_accepted_at") @db.Timestamptz(3)
+  privacyAcceptedAt DateTime?  @map("privacy_accepted_at") @db.Timestamptz(3)
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt         DateTime?  @map("deleted_at") @db.Timestamptz(3)
+
+  candidateProfile CandidateProfile?
+  agencyMembers    AgencyMember[]
+
+  @@index([status])
+  @@index([onboardingStatus])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model CandidateProfile {
+  id                String                   @id @default(uuid()) @db.Uuid
+  userId            String                   @unique @map("user_id") @db.Uuid
+  specialization    CandidateSpecialization?
+  experience        CandidateExperience?
+  englishLevel      EnglishLevel?            @map("english_level")
+  timezone          String?
+  minimumSalaryUsd  Int?                     @map("minimum_salary_usd")
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt         DateTime?                @map("deleted_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([specialization])
+  @@index([deletedAt])
+  @@map("candidate_profiles")
+}
+
+model Agency {
+  id                  String               @id @default(uuid()) @db.Uuid
+  name                String
+  teamSize            AgencyTeamSize?      @map("team_size")
+  monthlyHiring       AgencyMonthlyHiring? @map("monthly_hiring")
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt           DateTime?            @map("deleted_at") @db.Timestamptz(3)
+
+  members AgencyMember[]
+
+  @@index([deletedAt])
+  @@map("agencies")
+}
+
+model AgencyMember {
+  id        String           @id @default(uuid()) @db.Uuid
+  agencyId  String           @map("agency_id") @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  role      AgencyMemberRole @default(OWNER)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt DateTime?        @map("deleted_at") @db.Timestamptz(3)
+
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([agencyId, userId])
+  @@index([userId])
+  @@index([deletedAt])
+  @@map("agency_members")
+}
