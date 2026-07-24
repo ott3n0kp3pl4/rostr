@@ -6,13 +6,18 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
   ArrowRight,
+  BadgeCheck,
   BriefcaseBusiness,
   Check,
   ChevronRight,
+  Fingerprint,
   Globe2,
   LoaderCircle,
+  Milestone,
+  ShieldCheck,
   Sparkles,
   UserRound,
+  UserCheck,
   UsersRound,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -25,8 +30,11 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type {
+  AgencyProfileFoundation,
+  CandidateProfileFoundation,
   ClientOnboardingAction,
   ClientOnboardingStep,
+  OnboardingRole,
   OnboardingSnapshot,
 } from "@/modules/onboarding/contracts";
 
@@ -55,17 +63,54 @@ type ChoiceProps = {
 };
 
 const agencyNameSchema = z.object({
-  name: z.string().trim().min(2, "Введите минимум 2 символа").max(80, "Максимум 80 символов"),
+  name: z.string().trim().min(2, "Enter at least 2 characters").max(80, "Maximum 80 characters"),
 });
 
 const salarySchema = z.object({
   minimumSalaryUsd: z
     .string()
     .trim()
-    .regex(/^\d+$/, "Введите сумму без копеек")
+    .regex(/^\d+$/, "Enter a whole monthly amount")
     .transform(Number)
-    .pipe(z.number().int().min(500, "Минимум $500").max(100000, "Проверьте сумму")),
+    .pipe(z.number().int().min(500, "Minimum is $500").max(100000, "Check the amount")),
 });
+
+const specializationLabels: Record<
+  NonNullable<CandidateProfileFoundation["specialization"]>,
+  string
+> = {
+  chatter: "Chatter",
+  chatter_team_lead: "Chatter Team Lead",
+  recruiter: "Recruiter",
+};
+
+const experienceLabels: Record<NonNullable<CandidateProfileFoundation["experience"]>, string> = {
+  none: "Starting out",
+  up_to_one_year: "Up to 1 year",
+  one_to_three_years: "1-3 years",
+  three_plus_years: "3+ years",
+};
+
+const englishLabels: Record<NonNullable<CandidateProfileFoundation["englishLevel"]>, string> = {
+  basic: "Basic",
+  intermediate: "Intermediate",
+  upper_intermediate: "Upper-Intermediate",
+  advanced: "Advanced",
+};
+
+const teamSizeLabels: Record<NonNullable<AgencyProfileFoundation["teamSize"]>, string> = {
+  one_to_five: "1-5 people",
+  six_to_twenty: "6-20 people",
+  twenty_one_to_fifty: "21-50 people",
+  fifty_plus: "50+ people",
+};
+
+const monthlyHiringLabels: Record<NonNullable<AgencyProfileFoundation["monthlyHiring"]>, string> = {
+  one: "1 person",
+  two_to_five: "2-5 people",
+  six_to_ten: "6-10 people",
+  eleven_plus: "11+ people",
+};
 
 type AgencyNameForm = z.infer<typeof agencyNameSchema>;
 type SalaryFormInput = z.input<typeof salarySchema>;
@@ -103,15 +148,13 @@ async function requestOnboarding<T>(
 
     const payload = (await response.json().catch(() => ({}))) as T & ApiErrorPayload;
     if (!response.ok) {
-      throw new Error(payload.error?.message ?? "Не удалось сохранить изменения.");
+      throw new Error(payload.error?.message ?? "Could not save your progress.");
     }
 
     return payload;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error(
-        "Сервер не отвечает. Проверьте подключение к базе данных и повторите попытку.",
-      );
+      throw new Error("The server did not respond. Check the database connection and try again.");
     }
     throw error;
   } finally {
@@ -167,15 +210,15 @@ function Header({
     <header className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold tracking-[-0.01em] text-[var(--foreground)]">
-          CreatorHire
+          Rostr
         </span>
         {progress ? (
           <span className="text-xs font-medium tabular-nums text-[var(--muted)]">
-            {progress.current} из {progress.total}
+            {progress.current} of {progress.total}
           </span>
         ) : (
           <span className="rounded-full bg-[var(--secondary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--muted)]">
-            18+
+            Telegram-first
           </span>
         )}
       </div>
@@ -237,8 +280,8 @@ function LoadingState(): React.ReactNode {
     <main className="telegram-safe mx-auto flex min-h-[var(--app-height)] max-w-md items-center px-5">
       <Card className="w-full p-6">
         <LoaderCircle className="size-5 animate-spin text-[var(--primary)]" />
-        <p className="mt-4 text-base font-semibold">Готовим ваше пространство</p>
-        <p className="mt-1 text-sm text-[var(--muted)]">Проверяем сохранённый прогресс.</p>
+        <p className="mt-4 text-base font-semibold">Preparing your Rostr space</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">Checking saved progress.</p>
       </Card>
     </main>
   );
@@ -249,10 +292,10 @@ function ErrorState({ message, retry }: { message: string; retry: () => void }):
     <main className="telegram-safe mx-auto flex min-h-[var(--app-height)] max-w-md items-center px-5">
       <Card className="w-full p-6">
         <AlertCircle className="size-6 text-[var(--danger)]" />
-        <h1 className="mt-4 text-xl font-semibold tracking-tight">Не удалось открыть onboarding</h1>
+        <h1 className="mt-4 text-xl font-semibold tracking-tight">Could not open Rostr</h1>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{message}</p>
         <Button className="mt-6 w-full" onClick={retry} type="button">
-          Попробовать снова
+          Try again
         </Button>
       </Card>
     </main>
@@ -260,7 +303,7 @@ function ErrorState({ message, retry }: { message: string; retry: () => void }):
 }
 
 function BusyLabel(): React.ReactNode {
-  return <LoaderCircle aria-label="Сохранение" className="size-5 animate-spin" />;
+  return <LoaderCircle aria-label="Saving" className="size-5 animate-spin" />;
 }
 
 function AgencyNameStep({
@@ -281,14 +324,14 @@ function AgencyNameStep({
       onSubmit={form.handleSubmit((values) => submit(values.name))}
     >
       <label className="sr-only" htmlFor="agency-name">
-        Название агентства
+        Agency name
       </label>
       <Input
         autoComplete="organization"
         autoFocus
         disabled={busy}
         id="agency-name"
-        placeholder="Например, North Star"
+        placeholder="For example, North Star"
         {...form.register("name")}
       />
       <p className="mt-2 min-h-5 text-sm text-[var(--danger)]">
@@ -300,7 +343,7 @@ function AgencyNameStep({
             <BusyLabel />
           ) : (
             <>
-              Продолжить <ArrowRight className="size-5" />
+              Continue <ArrowRight className="size-5" />
             </>
           )}
         </Button>
@@ -328,7 +371,7 @@ function SalaryStep({
     >
       <div className="relative">
         <label className="sr-only" htmlFor="salary">
-          Минимальная зарплата в долларах США за месяц
+          Minimum monthly salary in US dollars
         </label>
         <span className="pointer-events-none absolute left-4 top-4 text-xl font-semibold text-[var(--foreground)]">
           $
@@ -348,14 +391,14 @@ function SalaryStep({
       <p className="mt-2 min-h-5 text-sm text-[var(--danger)]">
         {form.formState.errors.minimumSalaryUsd?.message}
       </p>
-      <p className="mt-2 text-sm text-[var(--muted)]">В долларах США за месяц</p>
+      <p className="mt-2 text-sm text-[var(--muted)]">In US dollars per month</p>
       <div className="mt-auto pt-8">
         <Button className="w-full" disabled={busy} size="lg" type="submit">
           {busy ? (
             <BusyLabel />
           ) : (
             <>
-              Завершить <ArrowRight className="size-5" />
+              Finish <ArrowRight className="size-5" />
             </>
           )}
         </Button>
@@ -384,40 +427,231 @@ function DevReset({
       onClick={onReset}
       type="button"
     >
-      Сбросить onboarding для разработки
+      Reset onboarding for development
     </button>
   );
 }
 
-function CompletedScreen({
-  name,
-  canReset,
+function fieldValue(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === "") {
+    return "Not set yet";
+  }
+  return String(value);
+}
+
+function DashboardField({ label, value }: { label: string; value: string }): React.ReactNode {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">{value}</p>
+    </div>
+  );
+}
+
+function DashboardCard({
+  children,
+  description,
+  icon,
+  title,
+}: {
+  children?: React.ReactNode;
+  description: string;
+  icon: React.ReactNode;
+  title: string;
+}): React.ReactNode {
+  return (
+    <Card className="p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[var(--icon-surface)] text-[var(--primary)]">
+          {icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--foreground)]">
+            {title}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{description}</p>
+        </div>
+      </div>
+      {children ? <div className="mt-5">{children}</div> : null}
+    </Card>
+  );
+}
+
+function CareerPassportFoundation({
+  audience,
+}: {
+  audience: "talent" | "agency";
+}): React.ReactNode {
+  return (
+    <DashboardCard
+      description={
+        audience === "talent"
+          ? "This is the start of your portable professional identity."
+          : "This is the trust model your organization will participate in."
+      }
+      icon={<Fingerprint className="size-5" />}
+      title="Career Passport foundation"
+    >
+      <div className="space-y-3">
+        <div className="rounded-2xl border border-dashed border-[var(--border)] p-4">
+          <div className="flex items-center gap-2">
+            <Milestone className="size-4 text-[var(--primary)]" />
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              Verified career timeline is empty
+            </p>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            Employment verification is planned and not active yet. Future timeline entries will
+            require clear talent and agency confirmation.
+          </p>
+        </div>
+        <div className="rounded-2xl bg-[var(--primary-soft)] p-4 text-sm leading-6 text-[var(--foreground)]">
+          Reputation in Rostr will be based on verified career events, not ratings, reviews or paid
+          boosts.
+        </div>
+      </div>
+    </DashboardCard>
+  );
+}
+
+function TalentDashboard({
+  profile,
+}: {
+  profile: CandidateProfileFoundation | null;
+}): React.ReactNode {
+  return (
+    <>
+      <Title
+        eyebrow="Profile foundation saved"
+        title="Career Passport foundation"
+        description="Your Rostr profile is ready. Next, this becomes a verified career timeline when employment verification is implemented."
+      />
+      <DashboardCard
+        description="These fields come from onboarding and can seed your professional identity."
+        icon={<UserCheck className="size-5" />}
+        title="Profile foundation"
+      >
+        <div className="grid gap-3">
+          <DashboardField label="Role" value="Talent" />
+          <DashboardField
+            label="Specialization"
+            value={
+              profile?.specialization ? specializationLabels[profile.specialization] : "Not set yet"
+            }
+          />
+          <DashboardField
+            label="Experience"
+            value={profile?.experience ? experienceLabels[profile.experience] : "Not set yet"}
+          />
+          <DashboardField
+            label="English"
+            value={profile?.englishLevel ? englishLabels[profile.englishLevel] : "Not set yet"}
+          />
+          <DashboardField label="Timezone" value={fieldValue(profile?.timezone)} />
+          <DashboardField
+            label="Minimum monthly salary"
+            value={
+              profile?.minimumSalaryUsd
+                ? `$${profile.minimumSalaryUsd.toLocaleString("en-US")}`
+                : "Not set yet"
+            }
+          />
+        </div>
+      </DashboardCard>
+      <CareerPassportFoundation audience="talent" />
+    </>
+  );
+}
+
+function AgencyDashboard({
+  profile,
+}: {
+  profile: AgencyProfileFoundation | null;
+}): React.ReactNode {
+  return (
+    <>
+      <Title
+        eyebrow="Organization foundation saved"
+        title="Organization foundation"
+        description="Your agency profile is ready. Sprint 1 keeps the focus on trust foundations, not vacancies."
+      />
+      <DashboardCard
+        description="These fields come from agency onboarding and form the first organization profile."
+        icon={<BriefcaseBusiness className="size-5" />}
+        title="Agency profile"
+      >
+        <div className="grid gap-3">
+          <DashboardField label="Organization" value={fieldValue(profile?.name)} />
+          <DashboardField
+            label="Team size"
+            value={profile?.teamSize ? teamSizeLabels[profile.teamSize] : "Not set yet"}
+          />
+          <DashboardField
+            label="Monthly hiring volume"
+            value={
+              profile?.monthlyHiring ? monthlyHiringLabels[profile.monthlyHiring] : "Not set yet"
+            }
+          />
+        </div>
+      </DashboardCard>
+      <DashboardCard
+        description="Employment verification is planned and not active yet. No team trust claims are verified in Sprint 1."
+        icon={<ShieldCheck className="size-5" />}
+        title="Team trust foundation"
+      >
+        <p className="rounded-2xl border border-dashed border-[var(--border)] p-4 text-sm leading-6 text-[var(--muted)]">
+          Future verification will connect agency-confirmed employment history with talent-owned
+          Career Passports. No fake agency data is shown here.
+        </p>
+      </DashboardCard>
+      <CareerPassportFoundation audience="agency" />
+    </>
+  );
+}
+
+function DashboardScreen({
+  onboarding,
   busy,
   reset,
 }: {
-  name: string;
-  canReset: boolean;
+  onboarding: OnboardingSnapshot;
   busy: boolean;
   reset: () => void;
 }): React.ReactNode {
+  const candidateProfile =
+    onboarding.profile?.kind === "candidate" ? onboarding.profile.candidate : null;
+  const agencyProfile = onboarding.profile?.kind === "agency" ? onboarding.profile.agency : null;
+
   return (
-    <Screen screenKey="completed">
-      <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <motion.div
-          animate={{ scale: 1, opacity: 1 }}
-          className="grid size-16 place-items-center rounded-[24px] bg-[var(--success-soft)] text-[var(--success)]"
-          initial={{ scale: 0.8, opacity: 0 }}
-          transition={{ delay: 0.08, type: "spring", stiffness: 260, damping: 18 }}
-        >
-          <Check className="size-8" strokeWidth={2.5} />
-        </motion.div>
-        <h1 className="mt-6 text-[32px] font-semibold tracking-[-0.045em]">Профиль готов</h1>
-        <p className="mt-3 max-w-xs text-pretty text-[15px] leading-6 text-[var(--muted)]">
-          Спасибо, {name}. Мы сохранили настройки и подготовили ваш следующий шаг.
-        </p>
-        <DevReset busy={busy} canReset={canReset} onReset={reset} />
+    <main
+      className="telegram-safe mx-auto flex min-h-[var(--app-height)] max-w-md flex-col px-5"
+      data-testid="dashboard"
+    >
+      <header className="flex items-center justify-between pb-6">
+        <span className="text-sm font-semibold tracking-[-0.01em] text-[var(--foreground)]">
+          Rostr
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--success-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--success)]">
+          <Check className="size-3.5" />
+          Ready
+        </span>
+      </header>
+      <div className="space-y-4">
+        {onboarding.profile?.kind === "agency" ? (
+          <AgencyDashboard profile={agencyProfile} />
+        ) : (
+          <TalentDashboard profile={candidateProfile} />
+        )}
+        <DashboardCard
+          description={`Welcome, ${onboarding.displayName}. Rostr is Telegram-first today and designed to stay portable beyond Telegram.`}
+          icon={<BadgeCheck className="size-5" />}
+          title="Next step"
+        />
       </div>
-    </Screen>
+      <DevReset busy={busy} canReset={onboarding.canReset} onReset={reset} />
+    </main>
   );
 }
 
@@ -454,7 +688,7 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
     const message =
       onboardingQuery.error instanceof Error
         ? onboardingQuery.error.message
-        : "Проверьте подключение и повторите попытку.";
+        : "Check the connection and try again.";
     return <ErrorState message={message} retry={() => void onboardingQuery.refetch()} />;
   }
 
@@ -462,17 +696,18 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
   const busy = actionMutation.isPending || resetMutation.isPending;
   const progress = candidateProgress[onboarding.step];
   const apply = (action: ClientOnboardingAction): void => actionMutation.mutate(action);
+  const beginWithRole = (role: OnboardingRole): void => {
+    actionMutation.mutate(
+      { action: "start" },
+      {
+        onSuccess: () => actionMutation.mutate({ action: "role", role }),
+      },
+    );
+  };
   const reset = (): void => resetMutation.mutate();
 
   if (onboarding.completed) {
-    return (
-      <CompletedScreen
-        busy={busy}
-        canReset={onboarding.canReset}
-        name={onboarding.displayName}
-        reset={reset}
-      />
-    );
+    return <DashboardScreen busy={busy} onboarding={onboarding} reset={reset} />;
   }
 
   return (
@@ -491,26 +726,26 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
                 <Sparkles className="size-7" />
               </motion.div>
               <Title
-                eyebrow="CreatorHire"
-                title="Найм начинается с одного ясного шага"
-                description="Настроим ваш профиль меньше чем за 40 секунд. Только самое необходимое — без длинных форм."
+                eyebrow="Rostr"
+                title="Trust starts with a verified story"
+                description="Create your profile foundation in under 40 seconds. Rostr begins with Career Passport, verified timeline and agency trust."
               />
-              <div className="mt-10">
-                <Button
-                  className="w-full"
+              <div className="mt-9 space-y-3">
+                <Choice
                   disabled={busy}
-                  onClick={() => apply({ action: "start" })}
-                  size="lg"
-                  type="button"
-                >
-                  {busy ? (
-                    <BusyLabel />
-                  ) : (
-                    <>
-                      Начать <ArrowRight className="size-5" />
-                    </>
-                  )}
-                </Button>
+                  highlighted
+                  icon={<UserRound className="size-5" />}
+                  onClick={() => beginWithRole("candidate")}
+                  title="Start as talent"
+                  description="Build the foundation for your Career Passport."
+                />
+                <Choice
+                  disabled={busy}
+                  icon={<BriefcaseBusiness className="size-5" />}
+                  onClick={() => beginWithRole("agency")}
+                  title="Create agency profile"
+                  description="Set up an organization foundation for future verification."
+                />
               </div>
             </div>
           ) : null}
@@ -518,23 +753,23 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
           {onboarding.step === "role" ? (
             <div className="flex flex-1 flex-col">
               <Title
-                title="Что вы хотите делать?"
-                description="Выберите один сценарий — дальше покажем только нужные шаги."
+                title="Choose your Rostr path"
+                description="Select one entry point. Rostr will only ask for what this profile foundation needs."
               />
               <div className="mt-9 space-y-3">
                 <Choice
-                  description="Ищу новую роль в команде"
+                  description="Create a talent profile foundation"
                   disabled={busy}
                   icon={<UserRound className="size-5" />}
                   onClick={() => apply({ action: "role", role: "candidate" })}
-                  title="Я кандидат"
+                  title="Talent"
                 />
                 <Choice
-                  description="Ищу людей в агентство"
+                  description="Create an agency organization foundation"
                   disabled={busy}
                   icon={<BriefcaseBusiness className="size-5" />}
                   onClick={() => apply({ action: "role", role: "agency" })}
-                  title="Я представляю агентство"
+                  title="Agency"
                 />
               </div>
             </div>
@@ -543,8 +778,8 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
           {onboarding.step === "candidateSpecialization" ? (
             <div className="flex flex-1 flex-col">
               <Title
-                title="Ваша специализация"
-                description="Это поможет настроить релевантный опыт дальше."
+                title="Your specialization"
+                description="This starts the professional context for your profile foundation."
               />
               <div className="mt-9 space-y-3">
                 <Choice
@@ -570,27 +805,27 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
 
           {onboarding.step === "candidateExperience" ? (
             <div className="flex flex-1 flex-col">
-              <Title title="Ваш опыт" description="Выберите ближайший вариант." />
+              <Title title="Your experience" description="Choose the closest option." />
               <div className="mt-9 space-y-3">
                 <Choice
                   disabled={busy}
                   onClick={() => apply({ action: "experience", experience: "none" })}
-                  title="Начинаю путь"
+                  title="Starting out"
                 />
                 <Choice
                   disabled={busy}
                   onClick={() => apply({ action: "experience", experience: "up_to_one_year" })}
-                  title="До 1 года"
+                  title="Up to 1 year"
                 />
                 <Choice
                   disabled={busy}
                   onClick={() => apply({ action: "experience", experience: "one_to_three_years" })}
-                  title="1–3 года"
+                  title="1-3 years"
                 />
                 <Choice
                   disabled={busy}
                   onClick={() => apply({ action: "experience", experience: "three_plus_years" })}
-                  title="3+ года"
+                  title="3+ years"
                 />
               </div>
             </div>
@@ -598,10 +833,7 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
 
           {onboarding.step === "candidateEnglish" ? (
             <div className="flex flex-1 flex-col">
-              <Title
-                title="Уровень английского"
-                description="Без теста — просто ваша честная оценка."
-              />
+              <Title title="English level" description="No test here, just your honest estimate." />
               <div className="mt-9 space-y-3">
                 <Choice
                   disabled={busy}
@@ -630,8 +862,8 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
           {onboarding.step === "candidateTimezone" ? (
             <div className="flex flex-1 flex-col">
               <Title
-                title="Ваш часовой пояс"
-                description="Так мы будем корректно показывать доступность."
+                title="Your timezone"
+                description="This keeps future availability and timeline context clear."
               />
               <div className="mt-7 grid grid-cols-2 gap-3">
                 {[
@@ -667,8 +899,8 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
           {onboarding.step === "candidateSalary" ? (
             <div className="flex flex-1 flex-col">
               <Title
-                title="Минимальный доход"
-                description="Укажите комфортный минимум. Его можно изменить позже."
+                title="Minimum income"
+                description="Set a comfortable monthly minimum. It can change later."
               />
               <SalaryStep
                 busy={busy}
@@ -680,8 +912,8 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
           {onboarding.step === "agencyName" ? (
             <div className="flex flex-1 flex-col">
               <Title
-                title="Как называется агентство?"
-                description="Это увидят кандидаты после модерации профиля."
+                title="What is the agency called?"
+                description="This becomes the first organization profile field."
               />
               <AgencyNameStep
                 busy={busy}
@@ -692,31 +924,31 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
 
           {onboarding.step === "agencyTeamSize" ? (
             <div className="flex flex-1 flex-col">
-              <Title title="Размер команды" description="Выберите текущий масштаб агентства." />
+              <Title title="Team size" description="Choose the current agency size." />
               <div className="mt-9 space-y-3">
                 <Choice
                   disabled={busy}
                   icon={<UsersRound className="size-5" />}
                   onClick={() => apply({ action: "teamSize", teamSize: "one_to_five" })}
-                  title="1–5 человек"
+                  title="1-5 people"
                 />
                 <Choice
                   disabled={busy}
                   icon={<UsersRound className="size-5" />}
                   onClick={() => apply({ action: "teamSize", teamSize: "six_to_twenty" })}
-                  title="6–20 человек"
+                  title="6-20 people"
                 />
                 <Choice
                   disabled={busy}
                   icon={<UsersRound className="size-5" />}
                   onClick={() => apply({ action: "teamSize", teamSize: "twenty_one_to_fifty" })}
-                  title="21–50 человек"
+                  title="21-50 people"
                 />
                 <Choice
                   disabled={busy}
                   icon={<UsersRound className="size-5" />}
                   onClick={() => apply({ action: "teamSize", teamSize: "fifty_plus" })}
-                  title="50+ человек"
+                  title="50+ people"
                 />
               </div>
             </div>
@@ -725,33 +957,33 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
           {onboarding.step === "agencyMonthlyHiring" ? (
             <div className="flex flex-1 flex-col">
               <Title
-                title="Сколько человек нанимаете в месяц?"
-                description="Ориентировочно — это нужно для настройки вашего потока."
+                title="How many people do you hire monthly?"
+                description="A rough range helps shape the organization foundation."
               />
               <div className="mt-9 space-y-3">
                 <Choice
                   disabled={busy}
                   icon={<Globe2 className="size-5" />}
                   onClick={() => apply({ action: "monthlyHiring", monthlyHiring: "one" })}
-                  title="1 человек"
+                  title="1 person"
                 />
                 <Choice
                   disabled={busy}
                   icon={<Globe2 className="size-5" />}
                   onClick={() => apply({ action: "monthlyHiring", monthlyHiring: "two_to_five" })}
-                  title="2–5 человек"
+                  title="2-5 people"
                 />
                 <Choice
                   disabled={busy}
                   icon={<Globe2 className="size-5" />}
                   onClick={() => apply({ action: "monthlyHiring", monthlyHiring: "six_to_ten" })}
-                  title="6–10 человек"
+                  title="6-10 people"
                 />
                 <Choice
                   disabled={busy}
                   icon={<Globe2 className="size-5" />}
                   onClick={() => apply({ action: "monthlyHiring", monthlyHiring: "eleven_plus" })}
-                  title="11+ человек"
+                  title="11+ people"
                 />
               </div>
             </div>
@@ -762,13 +994,13 @@ export function OnboardingWizard({ telegram }: WizardProps): React.ReactNode {
         <p className="pb-2 text-center text-sm text-[var(--danger)]" role="alert">
           {actionMutation.error instanceof Error
             ? actionMutation.error.message
-            : "Не удалось сохранить. Повторите попытку."}
+            : "Could not save. Try again."}
         </p>
       ) : null}
       <p className="pb-1 text-center text-xs text-[var(--muted)]">
         {telegram.environment === "telegram"
-          ? "Данные защищены Telegram"
-          : "Локальный режим разработки"}
+          ? "Telegram-first identity layer"
+          : "Local development mode"}
       </p>
     </main>
   );

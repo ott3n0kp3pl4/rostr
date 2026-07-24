@@ -14,8 +14,11 @@ import { ApiError } from "@/lib/http/api-error";
 import { prisma } from "@/lib/prisma";
 import { validateTelegramInitData } from "@/lib/telegram/init-data";
 import type {
+  AgencyProfileFoundation,
+  CandidateProfileFoundation,
   ClientOnboardingStep,
   OnboardingAction,
+  OnboardingProfileFoundation,
   OnboardingRole,
   OnboardingSnapshot,
 } from "@/modules/onboarding/contracts";
@@ -69,6 +72,52 @@ const monthlyHiringToDatabase: Record<
   two_to_five: "TWO_TO_FIVE",
   six_to_ten: "SIX_TO_TEN",
   eleven_plus: "ELEVEN_PLUS",
+};
+
+const specializationToClient: Record<
+  CandidateSpecialization,
+  NonNullable<CandidateProfileFoundation["specialization"]>
+> = {
+  CHATTER: "chatter",
+  CHATTER_TEAM_LEAD: "chatter_team_lead",
+  RECRUITER: "recruiter",
+};
+
+const experienceToClient: Record<
+  CandidateExperience,
+  NonNullable<CandidateProfileFoundation["experience"]>
+> = {
+  NO_EXPERIENCE: "none",
+  UP_TO_ONE_YEAR: "up_to_one_year",
+  ONE_TO_THREE_YEARS: "one_to_three_years",
+  THREE_PLUS_YEARS: "three_plus_years",
+};
+
+const englishToClient: Record<
+  EnglishLevel,
+  NonNullable<CandidateProfileFoundation["englishLevel"]>
+> = {
+  BASIC: "basic",
+  INTERMEDIATE: "intermediate",
+  UPPER_INTERMEDIATE: "upper_intermediate",
+  ADVANCED: "advanced",
+};
+
+const teamSizeToClient: Record<AgencyTeamSize, NonNullable<AgencyProfileFoundation["teamSize"]>> = {
+  ONE_TO_FIVE: "one_to_five",
+  SIX_TO_TWENTY: "six_to_twenty",
+  TWENTY_ONE_TO_FIFTY: "twenty_one_to_fifty",
+  FIFTY_PLUS: "fifty_plus",
+};
+
+const monthlyHiringToClient: Record<
+  AgencyMonthlyHiring,
+  NonNullable<AgencyProfileFoundation["monthlyHiring"]>
+> = {
+  ONE: "one",
+  TWO_TO_FIVE: "two_to_five",
+  SIX_TO_TEN: "six_to_ten",
+  ELEVEN_PLUS: "eleven_plus",
 };
 
 const stepToClient: Record<OnboardingStep, ClientOnboardingStep> = {
@@ -166,6 +215,29 @@ async function snapshotFor(userId: string): Promise<OnboardingSnapshot> {
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
     select: {
+      agencyMembers: {
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        where: { deletedAt: null, agency: { deletedAt: null } },
+        select: {
+          agency: {
+            select: {
+              monthlyHiring: true,
+              name: true,
+              teamSize: true,
+            },
+          },
+        },
+      },
+      candidateProfile: {
+        select: {
+          englishLevel: true,
+          experience: true,
+          minimumSalaryUsd: true,
+          specialization: true,
+          timezone: true,
+        },
+      },
       displayName: true,
       userType: true,
       onboardingStatus: true,
@@ -173,10 +245,43 @@ async function snapshotFor(userId: string): Promise<OnboardingSnapshot> {
     },
   });
 
+  const agency = user.agencyMembers[0]?.agency;
+  const profile: OnboardingProfileFoundation =
+    user.userType === "CANDIDATE"
+      ? {
+          kind: "candidate",
+          candidate: {
+            englishLevel: user.candidateProfile?.englishLevel
+              ? englishToClient[user.candidateProfile.englishLevel]
+              : null,
+            experience: user.candidateProfile?.experience
+              ? experienceToClient[user.candidateProfile.experience]
+              : null,
+            minimumSalaryUsd: user.candidateProfile?.minimumSalaryUsd ?? null,
+            specialization: user.candidateProfile?.specialization
+              ? specializationToClient[user.candidateProfile.specialization]
+              : null,
+            timezone: user.candidateProfile?.timezone ?? null,
+          },
+        }
+      : user.userType === "AGENCY_OWNER"
+        ? {
+            kind: "agency",
+            agency: {
+              monthlyHiring: agency?.monthlyHiring
+                ? monthlyHiringToClient[agency.monthlyHiring]
+                : null,
+              name: agency?.name ?? null,
+              teamSize: agency?.teamSize ? teamSizeToClient[agency.teamSize] : null,
+            },
+          }
+        : null;
+
   return {
     canReset: isDevelopmentMode(),
     completed: user.onboardingStatus === "COMPLETED",
     displayName: user.displayName,
+    profile,
     role: toRole(user.userType),
     step: stepToClient[user.onboardingStep],
   };

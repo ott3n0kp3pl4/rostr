@@ -22,20 +22,46 @@ Body: `{ "initData": "<raw Telegram WebApp initData>" }`. Сервер испо�
 
 ### Onboarding
 
-`POST /api/v1/onboarding/bootstrap` принимает `{ initData? }` в body и возвращает server-derived `onboarding` snapshot. В production `initData` обязателен; в local development допускается только фиксированный development account.
+`POST /api/v1/onboarding/bootstrap` accepts `{ initData? }` in the body and
+returns a server-derived `onboarding` snapshot. In production, `initData` is
+required; in local development, only the fixed development account is allowed.
 
-`PATCH /api/v1/onboarding` принимает один discriminated action за запрос: `start`, `role`, `specialization`, `experience`, `english`, `timezone`, `salary`, `agencyName`, `teamSize` или `monthlyHiring`. Zod повторно валидирует каждое значение на сервере. Action не принимает user ID и не возвращает Telegram ID.
+The snapshot includes onboarding state, user-facing display name, role and the
+available profile foundation:
 
-`POST /api/v1/onboarding/dev-reset` доступен исключительно при `TELEGRAM_DEV_MODE=true`; удаляет данные тестового сценария и возвращает wizard к приветствию. В production endpoint отвечает `404`.
+- talent: specialization, experience, English level, timezone and minimum
+  salary when available;
+- agency: organization name, team size and monthly hiring volume when
+  available.
 
-## Запланированная поверхность MVP
+The snapshot does not include Telegram ID, contacts, employment history,
+verification records, reputation, vacancies or private PII.
 
-| Область         | Методы                                                                                                                   |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Auth/onboarding | `POST /api/v1/auth/session`, `GET/PATCH /me`, `POST /me/consents`, `POST /me/deactivate`                                 |
-| Candidate       | `GET/PATCH /candidate-profile`, `GET /vacancies`, `POST/DELETE /saved-vacancies/:id`, `POST /vacancies/:id/applications` |
-| Agency          | `GET/PATCH /agency`, CRUD `/vacancies`, `GET /candidates`, `POST /candidates/:id/invitations`, CRUD `/talent-pool`       |
-| Pipeline        | `GET/PATCH /pipeline-items/:id`, `POST /pipeline-items/:id/move`                                                         |
-| Trust           | `POST /complaints`, moderator queues and reviewed actions                                                                |
+`PATCH /api/v1/onboarding` accepts one discriminated action per request:
+`start`, `role`, `specialization`, `experience`, `english`, `timezone`,
+`salary`, `agencyName`, `teamSize` or `monthlyHiring`. Zod validates every
+value again on the server. Actions do not accept user ID and do not return
+Telegram ID.
 
-Перед реализацией каждого набора endpoints фиксируются DTO, permissions, rate limits, audit-события, disclosure-policy и контрактные тесты.
+`POST /api/v1/onboarding/dev-reset` is available only when
+`TELEGRAM_DEV_MODE=true`; it removes the local test scenario data and returns
+the wizard to the welcome screen. In production, the endpoint responds `404`.
+
+## Planned MVP Surface
+
+The next API surface should stay aligned with the PRD: profile foundation,
+Career Passport foundation and employment verification readiness before
+vacancies or marketplace mechanics.
+
+| Area               | Candidate endpoints                                          | Status              |
+| ------------------ | ------------------------------------------------------------ | ------------------- |
+| Auth/session       | `POST /api/v1/auth/session`, `GET /api/v1/me`                | Planned             |
+| Profile foundation | `GET/PATCH /api/v1/profile-foundation`                       | Planned             |
+| Career Passport    | `GET /api/v1/career-passport`                                | Planned             |
+| Agency foundation  | `GET/PATCH /api/v1/agency-foundation`                        | Planned             |
+| Verification       | verification request/response endpoints                      | Planned (Post-MVP)  |
+| Vacancies          | vacancy CRUD, search, applications and marketplace mechanics | Planned (Postponed) |
+
+Before implementation, each endpoint group needs DTOs, permissions, rate-limit
+expectations, audit requirements, disclosure policy where relevant and contract
+tests.

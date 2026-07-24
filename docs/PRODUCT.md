@@ -17,10 +17,13 @@ metrics, paid reputation boosts or fake endorsements.
 
 ## Current Product Boundary
 
-Only onboarding is implemented. Onboarding creates a minimal talent or agency
-foundation, but it does not implement Career Passport, verified employment
-history, reputation, public profiles, vacancies, resumes, search, applications,
-contacts, moderation or any post-onboarding product screens.
+Onboarding and the first post-onboarding dashboard are implemented. Onboarding
+creates a minimal talent or agency foundation. The dashboard displays the
+existing profile foundation and a Career Passport foundation empty state.
+
+The current product does not implement full Career Passport data, verified
+employment history, reputation, public profiles, vacancies, resumes, search,
+applications, contacts, moderation or employment verification workflows.
 
 Current onboarding specializations are chatter, chatter team lead and recruiter.
 
@@ -36,7 +39,7 @@ Future product work should start from identity and trust:
 
 These features are planned unless explicitly marked as implemented in the PRD.
 
-## First Implemented Scenario: Onboarding
+## First Implemented Scenario: Onboarding And Dashboard
 
 The first user scenario is limited to the registration wizard. It includes no
 vacancies, resumes or search. The UX goal is completion in under 40 seconds: one
@@ -49,11 +52,18 @@ Talent path: welcome -> role -> specialization -> experience -> English level
 Agency path: welcome -> role -> agency name -> team size -> monthly hiring
 volume -> completion.
 
-Choices are saved after each step. A completed user no longer sees the wizard.
-In local development, an explicit dev reset can reopen onboarding. In
-production, the user is derived only from server-validated Telegram `initData`;
-local mode uses one fixed development account and does not accept user ID from
-the client.
+Choices are saved after each step. A completed user enters the dashboard and no
+longer sees the wizard. In local development, an explicit dev reset can reopen
+onboarding. In production, the user is derived only from server-validated
+Telegram `initData`; local mode uses one fixed development account and does not
+accept user ID from the client.
+
+The dashboard includes:
+
+- talent profile foundation from onboarding data;
+- agency organization foundation from onboarding data;
+- Career Passport foundation empty state;
+- clear language that employment verification is planned and not active yet.
 
 ## Out Of Scope For MVP
 

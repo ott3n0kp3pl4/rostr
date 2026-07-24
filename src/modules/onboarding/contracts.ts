@@ -91,6 +91,22 @@ export type ClientOnboardingAction = OnboardingAction extends infer Action
     : never
   : never;
 export type OnboardingRole = z.infer<typeof onboardingRoleSchema>;
+export type CandidateProfileFoundation = {
+  specialization: z.infer<typeof specializationSchema> | null;
+  experience: z.infer<typeof experienceSchema> | null;
+  englishLevel: z.infer<typeof englishLevelSchema> | null;
+  timezone: string | null;
+  minimumSalaryUsd: number | null;
+};
+export type AgencyProfileFoundation = {
+  name: string | null;
+  teamSize: z.infer<typeof agencyTeamSizeSchema> | null;
+  monthlyHiring: z.infer<typeof agencyMonthlyHiringSchema> | null;
+};
+export type OnboardingProfileFoundation =
+  | { kind: "candidate"; candidate: CandidateProfileFoundation }
+  | { kind: "agency"; agency: AgencyProfileFoundation }
+  | null;
 
 export type ClientOnboardingStep =
   | "welcome"
@@ -109,6 +125,7 @@ export type OnboardingSnapshot = {
   canReset: boolean;
   completed: boolean;
   displayName: string;
+  profile: OnboardingProfileFoundation;
   role: OnboardingRole | null;
   step: ClientOnboardingStep;
 };

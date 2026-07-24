@@ -1,19 +1,29 @@
-# Тестирование и проверка качества
+# Testing And Quality
 
-## Обязательный минимум
+## Required Minimum
 
-Перед PR: `pnpm lint`, `pnpm typecheck`, `pnpm test`; для затрагиваемого пользовательского маршрута — `pnpm test:e2e`. CI выполняет те же проверки на чистой установке с `pnpm install --frozen-lockfile`.
+Before review: `pnpm lint`, `pnpm typecheck`, `pnpm test`; for affected user
+routes, run `pnpm test:e2e`. CI should run the same checks on a clean install
+with `pnpm install --frozen-lockfile`.
 
-## Текущие тесты
+## Current Tests
 
-- Vitest: положительная и tampered-проверка Telegram `initData` с фиксированным временем;
-- Playwright: `GET /api/health` и полный candidate onboarding в локальном development-режиме с PostgreSQL.
+- Vitest: valid and tampered Telegram `initData` checks with fixed time.
+- Playwright: `GET /api/health`, talent onboarding to dashboard, completed-user
+  dashboard persistence and agency onboarding to dashboard in local development
+  mode with PostgreSQL.
 
-## Стратегия развития
+## Test Strategy
 
-1. Unit: policy/state machine, DTO validation, access-control и Telegram криптография.
-2. Integration: Prisma repositories на отдельной PostgreSQL БД, migrations, API handlers и outbox.
-3. E2E: candidate onboarding, agency vacancy, отклик, invitation, consent-controlled contact disclosure, moderation/blocking.
-4. Security: негативные RBAC/IDOR cases, replay initData, rate limit, PII snapshot/log assertions и dependency audit.
+1. Unit: policy/state machines, DTO validation, access control and Telegram
+   cryptography.
+2. Integration: Prisma repositories against a separate PostgreSQL database,
+   migrations, API handlers and future outbox behavior.
+3. E2E: onboarding, profile foundation, Career Passport foundation, future
+   verification, future invitations and consent-controlled contact disclosure.
+4. Security: negative RBAC/IDOR cases, replayed `initData`, rate limits, PII
+   snapshot/log assertions and dependency audit.
 
-Тестовые fixtures не содержат настоящие Telegram ID, телефоны или персональные данные. E2E запускается с `TELEGRAM_DEV_MODE=true` только для UI shell; API auth тестируется подписью с тестовым токеном.
+Test fixtures must not contain real Telegram IDs, phone numbers or personal
+data. E2E uses `TELEGRAM_DEV_MODE=true` only for the UI shell; API auth is tested
+with signed payloads and a test token.
