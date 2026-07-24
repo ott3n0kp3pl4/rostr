@@ -1,26 +1,45 @@
-# Документация Rostr
+# Rostr Documentation
 
-Этот каталог — единая точка входа в документацию продукта и инженерных решений. Реализованный продуктовый scope ограничен onboarding; вакансии, резюме и поиск пока не реализуются.
+This directory is the entry point for product and engineering documentation.
+The implemented product scope is limited to onboarding. Career Passport,
+employment verification, event-based reputation, public profiles, vacancies,
+resumes and search are not implemented.
 
-## Карта документов
+## Document Map
 
-| Область         | Документ                                             | Когда обновлять                                                   |
-| --------------- | ---------------------------------------------------- | ----------------------------------------------------------------- |
-| Продукт и scope | [PRODUCT.md](PRODUCT.md)                             | Изменяется пользовательский сценарий, метрики или границы этапа.  |
-| Архитектура     | [ARCHITECTURE.md](ARCHITECTURE.md)                   | Меняются слои, интеграции или технические границы.                |
-| Решения         | [DECISIONS.md](DECISIONS.md)                         | Принимается значимое и долгоживущее архитектурное решение.        |
-| Данные          | [DATABASE.md](DATABASE.md)                           | Меняется Prisma-схема или добавляется миграция.                   |
-| API             | [API.md](API.md)                                     | Создаётся, меняется или выводится из эксплуатации endpoint.       |
-| Безопасность    | [SECURITY.md](SECURITY.md)                           | Меняются аутентификация, права доступа, PII или секреты.          |
-| Роли            | [ROLES_AND_PERMISSIONS.md](ROLES_AND_PERMISSIONS.md) | Меняются роли, permissions или scopes.                            |
-| Качество        | [TESTING.md](TESTING.md)                             | Меняется стратегия или обязательный набор проверок.               |
-| Планирование    | [ROADMAP.md](ROADMAP.md)                             | Утверждается порядок продуктовых этапов.                          |
-| Монетизация     | [MONETIZATION.md](MONETIZATION.md)                   | Меняется модель entitlements или появляется платёжная интеграция. |
+| Area             | Document                                             | When to update                                                                |
+| ---------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Main product SOT | [PRD.md](PRD.md)                                     | Main product source of truth for requirements, product scope and decisions.   |
+| Master context   | [MASTER_CONTEXT.md](MASTER_CONTEXT.md)               | Confirmed product context or decision boundaries change.                      |
+| Founder roles    | [FOUNDER.md](FOUNDER.md)                             | Ownership or decision rights change.                                          |
+| Vision           | [VISION.md](VISION.md)                               | Product hypothesis or strategic boundary changes.                             |
+| Brand            | [BRAND.md](BRAND.md)                                 | Name, positioning or brand-system decisions are approved.                     |
+| Current sprint   | [CURRENT_SPRINT.md](CURRENT_SPRINT.md)               | Sprint goal, scope, status or exit criteria change.                           |
+| Changelog        | [CHANGELOG.md](CHANGELOG.md)                         | Material documentation or product work is completed.                          |
+| Product boundary | [PRODUCT.md](PRODUCT.md)                             | User scenario, MVP boundary or product metric categories change.              |
+| Architecture     | [ARCHITECTURE.md](ARCHITECTURE.md)                   | Layers, integrations or technical boundaries change.                          |
+| Decisions        | [DECISIONS.md](DECISIONS.md)                         | Durable product or architecture decisions are accepted.                       |
+| Data             | [DATABASE.md](DATABASE.md)                           | Prisma schema changes, migrations are added or target data boundaries change. |
+| API              | [API.md](API.md)                                     | Endpoints are created, changed or retired.                                    |
+| Security         | [SECURITY.md](SECURITY.md)                           | Authentication, access control, PII handling or secrets change.               |
+| Roles            | [ROLES_AND_PERMISSIONS.md](ROLES_AND_PERMISSIONS.md) | Roles, permissions or scopes change.                                          |
+| Quality          | [TESTING.md](TESTING.md)                             | Test strategy or required validation changes.                                 |
+| Planning         | [ROADMAP.md](ROADMAP.md)                             | Product phase order or milestone scope is approved.                           |
+| Monetization     | [MONETIZATION.md](MONETIZATION.md)                   | Entitlement model changes or payment integration is introduced.               |
 
-## Правила сопровождения
+Meeting notes live in `docs/meetings/`. Reusable work templates live in
+[`prompts/`](../prompts/).
 
-- [AGENTS.md](../AGENTS.md) обязателен для любой работы в репозитории.
-- Документация описывает фактическое состояние проекта. Будущие идеи помечаются как планируемые, а не как реализованные.
-- Изменение базы данных требует новой Prisma-миграции и синхронного обновления `DATABASE.md`.
-- Изменение REST API требует синхронного обновления `API.md` и соответствующих тестов.
-- Секреты, Telegram `initData`, токены и персональные данные не включаются в документацию, тестовые fixtures или Git.
+## Maintenance Rules
+
+- Every task starts by reading [AGENTS.md](../AGENTS.md),
+  `MASTER_CONTEXT.md` and `CURRENT_SPRINT.md`.
+- Product-related tasks also read `PRD.md`; it is the main source of truth for
+  product requirements, product scope and product decisions.
+- Documentation describes the actual project state. Future ideas are labelled
+  as planned, proposed or open questions, not as implemented.
+- Database changes require a new Prisma migration and a synchronized
+  `DATABASE.md` update.
+- REST API changes require a synchronized `API.md` update and relevant tests.
+- Secrets, Telegram `initData`, tokens and personal data must not appear in
+  documentation, fixtures or Git.
